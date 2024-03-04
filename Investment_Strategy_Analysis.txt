@@ -1,0 +1,124 @@
+import sqlite3
+import pandas as pd
+import matplotlib.pyplot as plt
+# If the file is uploaded directly to Google Colab
+# data = pd.read_csv('filename.csv')
+
+# If the data is hosted online
+data_url = 'https://docs.google.com/spreadsheets/d/1-rIkEb94tZ69FvsjXnfkVETYu6rftF-8/export?format=csv'
+data = pd.read_csv(data_url)
+
+def create_database(data):
+    conn = sqlite3.connect('investment_data.db')
+    data.to_sql('investment_data', conn, if_exists='replace', index=False)
+    conn.close()
+    
+create_database(data)
+
+print(data.head())
+
+# Convert 'datetime' column to datetime format
+data['datetime'] = pd.to_datetime(data['datetime'])
+
+# Print the first few rows of the dataframe
+print(data.head())
+
+# Unit Testing
+def unit_tests(data):
+    # Check if Open, High, Low, Close are decimals
+    assert data['open'].dtype == 'float64'
+    assert data['high'].dtype == 'float64'
+    assert data['low'].dtype == 'float64'
+    assert data['close'].dtype == 'float64'
+    
+    # Check if Volume is integer
+    assert data['volume'].dtype == 'int64'
+    
+    # Check if Instrument is string
+    assert data['instrument'].dtype == 'object'
+    
+    # Check if Datetime is datetime
+    assert pd.api.types.is_datetime64_any_dtype(data['datetime'])
+
+unit_tests(data)
+
+# Unit Testing
+def unit_tests(data):
+    # Check if Open, High, Low, Close are decimals
+    assert data['open'].dtype == 'float64'
+    assert data['high'].dtype == 'float64'
+    assert data['low'].dtype == 'float64'
+    assert data['close'].dtype == 'float64'
+    
+    # Check if Volume is integer
+    assert data['volume'].dtype == 'int64'
+    
+    # Check if Instrument is string
+    assert data['instrument'].dtype == 'object'
+    
+    # Check if Datetime is datetime
+    assert pd.api.types.is_datetime64_any_dtype(data['datetime'])
+
+unit_tests(data)
+
+
+# Strategy Creation: Simple Moving Average Crossover
+def simple_moving_average_crossover(data, short_window=50, long_window=200):
+    # Calculate short and long moving averages
+    data['Short_MA'] = data['close'].rolling(window=short_window, min_periods=1).mean()
+    data['Long_MA'] = data['close'].rolling(window=long_window, min_periods=1).mean()
+
+    # Generate buy/sell signals based on crossover
+    data['Signal'] = 0
+    data.loc[data['Short_MA'] > data['Long_MA'], 'Signal'] = 1  # Buy signal
+    data.loc[data['Short_MA'] < data['Long_MA'], 'Signal'] = -1  # Sell signal
+
+    return data
+
+# Apply strategy to data
+data_with_signals = simple_moving_average_crossover(data)
+
+# Performance Evaluation
+def evaluate_performance(data):
+    # Calculate returns
+    data['Returns'] = data['close'].pct_change()
+
+    # Calculate cumulative returns
+    data['Cumulative_Returns'] = (data['Returns'] + 1).cumprod() - 1
+
+    # Calculate Sharpe ratio
+    sharpe_ratio = data['Returns'].mean() / data['Returns'].std() * (252 ** 0.5)
+
+    # Calculate drawdown
+    data['Roll_Max'] = data['Cumulative_Returns'].cummax()
+    data['Drawdown'] = (data['Roll_Max'] - data['Cumulative_Returns']) / (data['Roll_Max'] + 1)
+    max_drawdown = data['Drawdown'].max()
+
+    return sharpe_ratio, max_drawdown
+
+sharpe_ratio, max_drawdown = evaluate_performance(data_with_signals)
+print("Sharpe Ratio:", sharpe_ratio)
+print("Max Drawdown:", max_drawdown)
+
+#unit testing
+
+# Unit Testing
+def unit_tests(data):
+    # Check if Open, High, Low, Close are decimals
+    assert data['open'].dtype == 'float64'
+    assert data['high'].dtype == 'float64'
+    assert data['low'].dtype == 'float64'
+    assert data['close'].dtype == 'float64'
+
+    # Check if Volume is integer
+    assert data['volume'].dtype == 'int64'
+
+    # Check if Instrument is string
+    assert data['instrument'].dtype == 'object'
+
+    # Check if Datetime is datetime
+    assert pd.api.types.is_datetime64_any_dtype(data['datetime'])
+
+unit_tests(data_with_signals)
+
+
